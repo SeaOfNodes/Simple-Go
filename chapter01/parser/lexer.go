@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"strconv"
 	"unicode"
 )
 
@@ -56,7 +55,7 @@ func isValidIDByte(b byte) bool {
 	return unicode.In(rune(b), unicode.Letter, unicode.Digit) || b == '_'
 }
 
-func (l *lexer) parseToken(isInToken func(b byte) bool) string {
+func (l *lexer) parseToken(isInToken func(b byte) bool) (string, int, int) {
 	start := l.position
 	for {
 		b, ok := l.nextByte()
@@ -67,77 +66,56 @@ func (l *lexer) parseToken(isInToken func(b byte) bool) string {
 	// Read one byte after last byte in token, so return to the end of token
 	l.position--
 	s := string(l.input[start:l.position])
-	return s
+	return s, start, l.position
 }
 
-func (l *lexer) parseID() string {
+func (l *lexer) parseID() (string, int, int) {
 	return l.parseToken(isValidIDByte)
 }
 
-func (l *lexer) parsePunctuation() string {
+func (l *lexer) parsePunctuation() (string, int, int) {
 	return l.parseToken(func(b byte) bool { return unicode.IsPunct(rune(b)) })
 }
 
-func (l *lexer) parseNumberString() (string, error) {
-	s := l.parseToken(func(b byte) bool { return unicode.IsDigit(rune(b)) })
+func (l *lexer) parseNumberString() (string, int, int, error) {
+	s, start, end := l.parseToken(func(b byte) bool { return unicode.IsDigit(rune(b)) })
 	if len(s) > 1 && s[0] == '0' {
-		return "", fmt.Errorf("integer values cannot start with '0'")
+		return "", 0, 0, fmt.Errorf("integer values cannot start with '0'")
 	}
-	return s, nil
-}
-
-func (l *lexer) parseNumber() (int, error) {
-	s, err := l.parseNumberString()
-	if err != nil {
-		return 0, err
+	if len(s) == 0 {
+		return "", 0, 0, fmt.Errorf("not a number")
 	}
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, fmt.Errorf("not a number: %s", s)
-	}
-	return i, nil
+	return s, start, end, nil
 }
 
 // ReadNumber skips whitespaces and retrieves the next number from input. If the next token is not a valid number, an error is returned.
-func (l *lexer) ReadNumber() (int, error) {
+func (l *lexer) ReadNumber() (string, int, int, error) {
 	l.skipWhitespace()
-	return l.parseNumber()
+	return l.parseNumberString()
 }
 
 // ReadToken skips whitespaces and retrieves the next token from input.
-func (l *lexer) ReadToken() (string, error) {
+func (l *lexer) ReadToken() (string, int, int, error) {
 	l.skipWhitespace()
 	b, ok := l.peek()
 	switch {
 	case !ok:
-		return "", nil
+		return "", l.position, l.position, nil
 	case isValidIDStart(b):
-		return l.parseID(), nil
+		id, start, end := l.parseID()
+		return id, start, end, nil
 	case unicode.IsNumber(rune(b)):
 		return l.parseNumberString()
 	case unicode.IsPunct(rune(b)):
-		return l.parsePunctuation(), nil
-
+		p, start, end := l.parsePunctuation()
+		return p, start, end, nil
 	}
-	return string(b), nil
+	l.position++
+	return string(b), l.position - 1, l.position, nil
 }
 
 // ReadByte retreives the next non-whitespace byte from input. Returns false if there are no non-whitespace bytes in input.
 func (l *lexer) ReadByte() (byte, bool) {
 	l.skipWhitespace()
 	return l.nextByte()
-}
-
-// TODO: Remove?
-func (l *lexer) isMatch(s string) bool {
-	l.skipWhitespace()
-	sLen := len(s)
-	if l.position+sLen >= len(l.input) {
-		return false
-	}
-	if s != string(l.input[l.position:l.position+sLen]) {
-		return false
-	}
-	l.position += sLen
-	return true
 }

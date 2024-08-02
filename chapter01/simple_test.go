@@ -1,9 +1,9 @@
-package parser_test
+package simple_test
 
 import (
 	"testing"
 
-	parser "github.com/SeaOfNodes/Simple-Go/chapter01"
+	simple "github.com/SeaOfNodes/Simple-Go/chapter01"
 	"github.com/SeaOfNodes/Simple-Go/chapter01/node"
 	"github.com/stretchr/testify/suite"
 )
@@ -23,8 +23,7 @@ func (suite *ParserTestSuite) TestValidPrograms() {
 	}
 	for _, test := range subTests {
 		suite.Run(test.name, func() {
-			p := parser.NewParser(test.input)
-			ret, err := p.Parse()
+			ret, err := simple.Simple(test.input)
 			suite.NoError(err)
 			suite.Equal(node.StartNode, ret.Control())
 
@@ -44,15 +43,14 @@ func (suite *ParserTestSuite) TestInvalidPrograms() {
 	}{
 		{name: "InvalidStatement", input: "ret", error: "Syntax error: expected a statement got ret"},
 		{name: "InvalidNumber", input: "return 0123;", error: "Syntax error: integer values cannot start with '0'"},
-		{name: "MinusNumber", input: "return -2;", error: "Syntax error: not a number: "},
+		{name: "MinusNumber", input: "return -2;", error: "Syntax error: not a number"},
 		{name: "MissingSemicolon", input: "return 123", error: "Syntax error: expected ; after expression"},
 		{name: "MissingWhitespace", input: "return123;", error: "Syntax error: expected a statement got return123"},
 		{name: "ByteAfterSemicolon", input: "return 1;}", error: "Syntax error: unexpected }"},
 	}
 	for _, test := range subTests {
 		suite.Run(test.name, func() {
-			p := parser.NewParser(test.input)
-			ret, err := p.Parse()
+			ret, err := simple.Simple(test.input)
 			suite.EqualError(err, test.error)
 			suite.Nil(ret)
 		})
