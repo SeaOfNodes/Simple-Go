@@ -1,4 +1,4 @@
-package node
+package ir
 
 var nodeID = 0
 

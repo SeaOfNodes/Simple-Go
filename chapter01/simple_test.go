@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	simple "github.com/SeaOfNodes/Simple-Go/chapter01"
-	"github.com/SeaOfNodes/Simple-Go/chapter01/node"
+	"github.com/SeaOfNodes/Simple-Go/chapter01/ir"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -25,12 +25,12 @@ func (suite *ParserTestSuite) TestValidPrograms() {
 		suite.Run(test.name, func() {
 			ret, err := simple.Simple(test.input)
 			suite.NoError(err)
-			suite.Equal(node.StartNode, ret.Control())
+			suite.Equal(ir.StartNode, ret.Control())
 
 			expr := ret.Expr()
-			suite.IsType(&node.ConstantNode{}, expr)
-			suite.Equal(node.StartNode, expr.In(0))
-			suite.Equal(test.num, expr.(*node.ConstantNode).Value)
+			suite.IsType(&ir.ConstantNode{}, expr)
+			suite.Equal(ir.StartNode, expr.In(0))
+			suite.Equal(test.num, expr.(*ir.ConstantNode).Value)
 		})
 	}
 }

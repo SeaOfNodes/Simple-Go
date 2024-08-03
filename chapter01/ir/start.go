@@ -1,4 +1,4 @@
-package node
+package ir
 
 // We only need one StartNode
 var StartNode = newStartNode()

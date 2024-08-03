@@ -1,4 +1,4 @@
-package node
+package ir
 
 type ConstantNode struct {
 	baseNode
