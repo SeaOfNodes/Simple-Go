@@ -1,5 +1,7 @@
 package ir
 
+import "github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+
 type ReturnNode struct {
 	baseNode
 }
@@ -10,5 +12,9 @@ func NewReturnNode(control Node, data Node) *ReturnNode {
 
 func (r *ReturnNode) IsControl() bool { return true }
 
-func (r *ReturnNode) Control() Node { return r.In(0) }
-func (r *ReturnNode) Expr() Node    { return r.In(1) }
+func (r *ReturnNode) compute() types.Type  { return types.BottomType }
+func (r *ReturnNode) label() string        { return "Return" }
+func (r *ReturnNode) GraphicLabel() string { return "Return" }
+
+func (r *ReturnNode) Control() Node { return In(r, 0) }
+func (r *ReturnNode) Expr() Node    { return In(r, 1) }

@@ -8,17 +8,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-var syntaxError = func(msgFormat string, args ...any) error {
-	return errors.New(fmt.Sprintf("Syntax error: "+msgFormat, args...))
+type SyntaxError struct {
+	error
+	Offset int
+}
+
+func syntaxError(offset int, msgFormat string, args ...any) *SyntaxError {
+	internal := errors.New(fmt.Sprintf("Syntax error: "+msgFormat, args...))
+	return &SyntaxError{error: internal, Offset: offset}
 }
 
 type Parser struct {
-	lexer lexer
-	file  *token.File
+	lexer  lexer
+	file   *token.File
+	source string
 }
 
 func NewParser(source string) *Parser {
-	return &Parser{lexer: lexer{input: []byte(source)}, file: token.NewFileSet().AddFile("", 1, len(source))}
+	return &Parser{source: source, lexer: lexer{input: []byte(source)}, file: token.NewFileSet().AddFile("", 1, len(source))}
 }
 
 func (p *Parser) Parse() (*ast.ReturnStmt, error) {
@@ -26,23 +33,23 @@ func (p *Parser) Parse() (*ast.ReturnStmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	if b, ok := p.lexer.ReadByte(); ok {
-		return nil, syntaxError("unexpected %c", b)
+	if b, offset, ok := p.lexer.ReadByte(); ok {
+		return nil, syntaxError(offset, "unexpected %c", b)
 	}
 	return n.(*ast.ReturnStmt), nil
 }
 
 func (p *Parser) parseStatement() (ast.Node, error) {
-	t, start, _, err := p.lexer.ReadToken()
+	t, offset, err := p.lexer.ReadToken()
 	if err != nil {
 		return nil, err
 	}
 
 	switch t {
 	case "return":
-		return p.parseReturn(p.file.Pos(start))
+		return p.parseReturn(p.offsetToPos(offset))
 	}
-	return nil, syntaxError("expected a statement got %s", t)
+	return nil, syntaxError(offset, "expected a statement got %s", t)
 }
 
 func (p *Parser) parseReturn(pos token.Pos) (*ast.ReturnStmt, error) {
@@ -50,28 +57,93 @@ func (p *Parser) parseReturn(pos token.Pos) (*ast.ReturnStmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("expr: %+v\n", expr)
 
 	// Make sure there is a semicolon after expression
-	token, ok := p.lexer.ReadByte()
+	token, offset, ok := p.lexer.ReadByte()
 	if !ok {
-		return nil, syntaxError("expected ; after expression")
+		return nil, syntaxError(offset, "expected ; after expression")
 	}
 	if token != ';' {
-		return nil, syntaxError("expected ; got %c", token)
+		return nil, syntaxError(offset, "expected ; got %c", token)
 	}
 
 	return &ast.ReturnStmt{Return: pos, Results: []ast.Expr{expr}}, nil
 }
 
 func (p *Parser) parseExpr() (ast.Expr, error) {
-	return p.parsePrimary()
+	return p.parseBinary()
 }
 
-func (p *Parser) parsePrimary() (ast.Expr, error) {
-	num, start, _, err := p.lexer.ReadNumber()
-	if err != nil {
-		return nil, syntaxError(err.Error())
+func opToToken(op byte) token.Token {
+	switch op {
+	case '+':
+		return token.ADD
+	case '-':
+		return token.SUB
+	case '*':
+		return token.MUL
+	case '/':
+		return token.QUO
 	}
-	return &ast.BasicLit{ValuePos: p.file.Pos(start), Kind: token.INT, Value: num}, nil
+	return token.ILLEGAL
+}
+
+func (p *Parser) parseBinary() (ast.Expr, error) {
+	// It's ok if we aren't able to parse a primary - this might be unary operation
+	lhs, err := p.parsePrimary()
+
+	op, opOffset, ok := p.lexer.ReadOp()
+	if !ok {
+		return lhs, err
+	}
+	opPos := p.offsetToPos(opOffset)
+	opToken := opToToken(op)
+
+	rhs, err := p.parseBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	if lhs == nil {
+		return &ast.UnaryExpr{X: rhs, Op: opToken, OpPos: opPos}, nil
+	}
+
+	return fixPrecedence(lhs, opToken, opPos, rhs), nil
+}
+
+func fixPrecedence(lhs *ast.BasicLit, op token.Token, opPos token.Pos, rhs ast.Expr) *ast.BinaryExpr {
+	// Only need to fix precedence if we're looking at two binary expressions
+	if rhs, ok := rhs.(*ast.BinaryExpr); ok {
+		// The expression looks like this:
+		// lExpr lOp mExpr rOp rExpr
+		lExpr, mExpr, rExpr := lhs, rhs.X, rhs.Y
+		lOp, lOpPos := op, opPos
+		rOp, rOpPos := rhs.Op, rhs.OpPos
+
+		// If this expression precedes the right hand side, make this expression the child of the rhs instead of the other way around
+		if lOp.Precedence() > rOp.Precedence() {
+			// New lhs, which is (lExpr lOp mExpr)
+			lhs := &ast.BinaryExpr{X: lExpr, Y: mExpr, Op: lOp, OpPos: lOpPos}
+			// New rhs, which is ((lExpr lOp mExpr) rOp rOpPos)
+			return &ast.BinaryExpr{X: lhs, Y: rExpr, Op: rOp, OpPos: rOpPos}
+		}
+	}
+
+	return &ast.BinaryExpr{X: lhs, Y: rhs, Op: op}
+}
+
+func (p *Parser) offsetToPos(offset int) token.Pos {
+	return p.file.Pos(offset)
+}
+
+func (p *Parser) PosToOffset(pos token.Pos) int {
+	return p.file.Offset(pos)
+}
+
+func (p *Parser) parsePrimary() (*ast.BasicLit, error) {
+	num, offset, err := p.lexer.ReadNumber()
+	if err != nil {
+		return nil, syntaxError(offset, err.Error())
+	}
+	return &ast.BasicLit{ValuePos: p.offsetToPos(offset), Kind: token.INT, Value: num}, nil
 }

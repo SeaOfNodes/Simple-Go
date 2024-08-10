@@ -1,4 +1,4 @@
-module github.com/SeaOfNodes/Simple-Go/chapter01
+module github.com/SeaOfNodes/Simple-Go/chapter02
 
 go 1.22.0
 
