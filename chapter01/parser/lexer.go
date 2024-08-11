@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"strings"
 	"unicode"
 )
 
@@ -113,18 +112,6 @@ func (l *lexer) ReadToken() (string, int, error) {
 	}
 	l.position++
 	return string(b), l.position - 1, nil
-}
-
-// ReadOp skips whitespaces and retrieves the next op (+-/*) from input.
-func (l *lexer) ReadOp() (byte, int, bool) {
-	l.skipWhitespace()
-	b, ok := l.peek()
-	if !ok || !strings.ContainsRune("+-*/", rune(b)) {
-		return 0, 0, false
-	}
-
-	l.position++
-	return b, l.position - 1, true
 }
 
 // ReadByte retreives the next non-whitespace byte from input. Returns false if there are no non-whitespace bytes in input.
