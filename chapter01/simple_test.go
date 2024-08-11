@@ -3,16 +3,16 @@ package simple_test
 import (
 	"testing"
 
-	simple "github.com/SeaOfNodes/Simple-Go/chapter01"
-	"github.com/SeaOfNodes/Simple-Go/chapter01/ir"
+	simple "github.com/SeaOfNodes/Simple-Go/chapter02"
+	"github.com/SeaOfNodes/Simple-Go/chapter02/ir"
 	"github.com/stretchr/testify/suite"
 )
 
-type ParserTestSuite struct {
+type SimpleTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ParserTestSuite) TestValidPrograms() {
+func (suite *SimpleTestSuite) TestValidPrograms() {
 	subTests := []struct {
 		name  string
 		input string
@@ -24,18 +24,18 @@ func (suite *ParserTestSuite) TestValidPrograms() {
 	for _, test := range subTests {
 		suite.Run(test.name, func() {
 			ret, err := simple.Simple(test.input)
-			suite.NoError(err)
+			suite.Require().NoError(err)
 			suite.Equal(ir.StartNode, ret.Control())
 
 			expr := ret.Expr()
 			suite.IsType(&ir.ConstantNode{}, expr)
-			suite.Equal(ir.StartNode, expr.In(0))
+			suite.Equal(ir.StartNode, ir.In(expr, 0))
 			suite.Equal(test.num, expr.(*ir.ConstantNode).Value)
 		})
 	}
 }
 
-func (suite *ParserTestSuite) TestInvalidPrograms() {
+func (suite *SimpleTestSuite) TestInvalidPrograms() {
 	subTests := []struct {
 		name  string
 		input string
@@ -51,12 +51,13 @@ func (suite *ParserTestSuite) TestInvalidPrograms() {
 	for _, test := range subTests {
 		suite.Run(test.name, func() {
 			ret, err := simple.Simple(test.input)
-			suite.EqualError(err, test.error)
+			suite.IsType(&simple.SourceError{}, err)
+			suite.Contains(err.Error(), test.error)
 			suite.Nil(ret)
 		})
 	}
 }
 
-func TestParser(t *testing.T) {
-	suite.Run(t, new(ParserTestSuite))
+func TestSimple(t *testing.T) {
+	suite.Run(t, new(SimpleTestSuite))
 }
