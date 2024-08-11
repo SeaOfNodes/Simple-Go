@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
 	"github.com/pkg/errors"
@@ -21,6 +22,7 @@ type Node interface {
 	compute() types.Type
 	label() string
 	GraphicLabel() string
+	toString(*strings.Builder)
 
 	// Implemented by baseNode to get baseNode
 	base() *baseNode
@@ -152,6 +154,22 @@ func peephole(n Node) (Node, error) {
 	}
 
 	return n, nil
+}
+
+func ToString(n Node) string {
+	sb := &strings.Builder{}
+	toString(n, sb)
+	return sb.String()
+}
+
+func toString(n Node, sb *strings.Builder) {
+	if dead(n) {
+		sb.WriteString(UniqueName(n))
+		sb.WriteString(":DEAD")
+		return
+	}
+
+	n.toString(sb)
 }
 
 func (b *baseNode) base() *baseNode {

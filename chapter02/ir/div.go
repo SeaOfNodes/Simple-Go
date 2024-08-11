@@ -1,6 +1,10 @@
 package ir
 
-import "github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+import (
+	"strings"
+
+	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+)
 
 type DivNode struct {
 	binaryNode
@@ -9,6 +13,9 @@ type DivNode struct {
 func NewDivNode(lhs Node, rhs Node) *DivNode {
 	return initBinaryNode(&DivNode{}, lhs, rhs)
 }
+
+func (d *DivNode) GraphicLabel() string { return "/" }
+func (d *DivNode) label() string        { return "Div" }
 
 func (d *DivNode) compute() types.Type {
 	lType, ok := Type(d.Lhs()).(*types.IntType)
@@ -26,5 +33,10 @@ func (d *DivNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (d *DivNode) label() string        { return "Div" }
-func (d *DivNode) GraphicLabel() string { return "/" }
+func (d *DivNode) toString(sb *strings.Builder) {
+	sb.WriteString("(")
+	toString(d.Lhs(), sb)
+	sb.WriteString("/")
+	toString(d.Rhs(), sb)
+	sb.WriteString(")")
+}

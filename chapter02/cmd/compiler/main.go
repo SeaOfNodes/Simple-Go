@@ -13,11 +13,14 @@ import (
 
 func main() {
 	useGoAST := flag.Bool("a", false, "")
+	printString := flag.Bool("s", false, "")
 	disablePeephole := flag.Bool("d", false, "")
 	flag.Usage = func() {
-		fmt.Printf("Usage: %s [-a] [-d] <code>\n", os.Args[0])
+		fmt.Println("Simple compiler written in Go. Prints graph representation of IR.")
+		fmt.Printf("Usage: %s [-a] [-d] [-s] <code>\n", os.Args[0])
 		fmt.Println("\t-a\tUse Go AST parser")
 		fmt.Println("\t-d\tDisable peephole optimizations")
+		fmt.Println("\t-s\tPrint string visualization")
 		fmt.Println("\t-h\tPrint this help and exit")
 	}
 	flag.Parse()
@@ -32,17 +35,23 @@ func main() {
 		ir.DisablePeephole = true
 	}
 
+	var node ir.Node
+	var err error
 	if *useGoAST {
-		_, err := simple.GoSimple(code)
+		node, err = simple.GoSimple(code)
 		if err != nil {
 			log.Fatalf("Compiler error: %v", err)
 		}
 	} else {
-		_, err := simple.Simple(code)
+		node, err = simple.Simple(code)
 		if err != nil {
 			log.Fatalf("Compiler error: %v", err)
 		}
 	}
 
-	fmt.Printf("Graph:\n\n%s", graph.Visualize())
+	if *printString {
+		fmt.Printf("String:\n\n%s", ir.ToString(node))
+	} else {
+		fmt.Printf("Graph:\n\n%s", graph.Visualize())
+	}
 }

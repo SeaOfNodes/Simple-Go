@@ -1,6 +1,10 @@
 package ir
 
-import "github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+import (
+	"strings"
+
+	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+)
 
 type MulNode struct {
 	binaryNode
@@ -9,6 +13,9 @@ type MulNode struct {
 func NewMulNode(lhs Node, rhs Node) *MulNode {
 	return initBinaryNode(&MulNode{}, lhs, rhs)
 }
+
+func (m *MulNode) GraphicLabel() string { return "*" }
+func (m *MulNode) label() string        { return "Mul" }
 
 func (m *MulNode) compute() types.Type {
 	lType, ok := m.Lhs().base().typ.(*types.IntType)
@@ -26,5 +33,10 @@ func (m *MulNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (m *MulNode) label() string        { return "Mul" }
-func (m *MulNode) GraphicLabel() string { return "*" }
+func (m *MulNode) toString(sb *strings.Builder) {
+	sb.WriteString("(")
+	toString(m.Lhs(), sb)
+	sb.WriteString("*")
+	toString(m.Rhs(), sb)
+	sb.WriteString(")")
+}

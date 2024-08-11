@@ -3,7 +3,9 @@ package parser
 import (
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -21,11 +23,13 @@ func syntaxError(offset int, msgFormat string, args ...any) *SyntaxError {
 type Parser struct {
 	lexer  lexer
 	file   *token.File
+	fset   *token.FileSet
 	source string
 }
 
 func NewParser(source string) *Parser {
-	return &Parser{source: source, lexer: lexer{input: []byte(source)}, file: token.NewFileSet().AddFile("", 1, len(source))}
+	fset := token.NewFileSet()
+	return &Parser{source: source, lexer: lexer{input: []byte(source)}, fset: fset, file: fset.AddFile("", 1, len(source))}
 }
 
 func (p *Parser) Parse() (*ast.ReturnStmt, error) {
@@ -88,48 +92,72 @@ func opToToken(op byte) token.Token {
 	return token.ILLEGAL
 }
 
-func (p *Parser) parseBinary() (ast.Expr, error) {
-	// It's ok if we aren't able to parse a primary - this might be unary operation
-	lhs, err := p.parsePrimary()
-
-	op, opOffset, ok := p.lexer.ReadOp()
-	if !ok {
-		return lhs, err
+// parseUnary parses the next unary operation(s). This is a recursive functiont that stops once a none-unary operation is met.
+func (p *Parser) parseUnary() (ast.Expr, error) {
+	op, opPos, hasOp := p.parseOp()
+	if !hasOp {
+		return p.parsePrimary()
 	}
-	opPos := p.offsetToPos(opOffset)
-	opToken := opToToken(op)
 
-	rhs, err := p.parseBinary()
+	value, err := p.parseUnary()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.UnaryExpr{X: value, Op: op, OpPos: opPos}, nil
+}
+
+// parseBinary parses unary and binary operations recursively. Stops once there are no more operations to parse, or an illegal sequence is encountered.
+func (p *Parser) parseBinary() (ast.Expr, error) {
+	lhs, err := p.parseUnary()
 	if err != nil {
 		return nil, err
 	}
 
-	if lhs == nil {
-		return &ast.UnaryExpr{X: rhs, Op: opToken, OpPos: opPos}, nil
-	}
-
-	return fixPrecedence(lhs, opToken, opPos, rhs), nil
+	return p.parseRhs(lhs)
 }
 
-func fixPrecedence(lhs *ast.BasicLit, op token.Token, opPos token.Pos, rhs ast.Expr) *ast.BinaryExpr {
-	// Only need to fix precedence if we're looking at two binary expressions
-	if rhs, ok := rhs.(*ast.BinaryExpr); ok {
-		// The expression looks like this:
-		// lExpr lOp mExpr rOp rExpr
-		lExpr, mExpr, rExpr := lhs, rhs.X, rhs.Y
-		lOp, lOpPos := op, opPos
-		rOp, rOpPos := rhs.Op, rhs.OpPos
-
-		// If this expression precedes the right hand side, make this expression the child of the rhs instead of the other way around
-		if lOp.Precedence() > rOp.Precedence() {
-			// New lhs, which is (lExpr lOp mExpr)
-			lhs := &ast.BinaryExpr{X: lExpr, Y: mExpr, Op: lOp, OpPos: lOpPos}
-			// New rhs, which is ((lExpr lOp mExpr) rOp rOpPos)
-			return &ast.BinaryExpr{X: lhs, Y: rExpr, Op: rOp, OpPos: rOpPos}
-		}
+// parseRhs recursively parses the next operation and right hand side, with the given left hand side. Stops once there are no more operations to parse.
+func (p *Parser) parseRhs(lhs ast.Expr) (ast.Expr, error) {
+	op, opPos, hasOp := p.parseOp()
+	if !hasOp {
+		return lhs, nil
 	}
 
-	return &ast.BinaryExpr{X: lhs, Y: rhs, Op: op}
+	rhs, err := p.parseUnary()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.parseRhs(p.withPrecedence(lhs, op, opPos, rhs))
+}
+
+func (p *Parser) parseOp() (token.Token, token.Pos, bool) {
+	op, opOffset, ok := p.lexer.ReadOp()
+	if !ok {
+		return 0, 0, false
+	}
+	return opToToken(op), p.offsetToPos(opOffset), true
+}
+
+// withPrecedence returns the given lhs, op and rhs as a binary expression while taking into consideration operation precedence. This function assumes rhs is a unary/primary expression.
+func (p *Parser) withPrecedence(lhs ast.Expr, op token.Token, opPos token.Pos, rhs ast.Expr) (b *ast.BinaryExpr) {
+	binLhs, ok := lhs.(*ast.BinaryExpr)
+	if !ok {
+		return &ast.BinaryExpr{X: lhs, Y: rhs, Op: op, OpPos: opPos}
+	}
+
+	// lExpr lOp mExpr rOp rExpr
+	lExpr, mExpr, rExpr := binLhs.X, binLhs.Y, rhs
+	lOp, rOp := binLhs.Op, op
+	lOpPos, rOpPos := binLhs.OpPos, opPos
+
+	if lOp.Precedence() >= rOp.Precedence() {
+		lhs := &ast.BinaryExpr{X: lExpr, Y: mExpr, Op: lOp, OpPos: lOpPos}
+		return &ast.BinaryExpr{X: lhs, Y: rExpr, Op: rOp, OpPos: rOpPos}
+	}
+
+	rhs = &ast.BinaryExpr{X: mExpr, Y: rExpr, Op: rOp, OpPos: rOpPos}
+	return &ast.BinaryExpr{X: lExpr, Y: rhs, Op: lOp, OpPos: lOpPos}
 }
 
 func (p *Parser) offsetToPos(offset int) token.Pos {
@@ -146,4 +174,11 @@ func (p *Parser) parsePrimary() (*ast.BasicLit, error) {
 		return nil, syntaxError(offset, err.Error())
 	}
 	return &ast.BasicLit{ValuePos: p.offsetToPos(offset), Kind: token.INT, Value: num}, nil
+}
+
+// string creates a string representation of the node n. Used for debugging.
+func (p *Parser) string(n ast.Node) string {
+	sb := &strings.Builder{}
+	printer.Fprint(sb, p.fset, n)
+	return sb.String()
 }

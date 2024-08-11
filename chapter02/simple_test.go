@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type Chapter01TestSuite struct {
+type SimpleTestSuite struct {
 	suite.Suite
 }
 
-func (suite *Chapter01TestSuite) TestValidPrograms() {
+func (suite *SimpleTestSuite) TestValidPrograms() {
 	subTests := []struct {
 		name  string
 		input string
@@ -39,7 +39,7 @@ func (suite *Chapter01TestSuite) TestValidPrograms() {
 	}
 }
 
-func (suite *Chapter01TestSuite) TestInvalidPrograms() {
+func (suite *SimpleTestSuite) TestInvalidPrograms() {
 	subTests := []struct {
 		name  string
 		input string
@@ -61,6 +61,6 @@ func (suite *Chapter01TestSuite) TestInvalidPrograms() {
 	}
 }
 
-func TestChapter01(t *testing.T) {
-	suite.Run(t, new(Chapter01TestSuite))
+func TestSimple(t *testing.T) {
+	suite.Run(t, new(SimpleTestSuite))
 }

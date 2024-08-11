@@ -1,6 +1,8 @@
 package ir
 
 import (
+	"strings"
+
 	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
 )
 
@@ -11,6 +13,9 @@ type AddNode struct {
 func NewAddNode(lhs Node, rhs Node) *AddNode {
 	return initBinaryNode(&AddNode{}, lhs, rhs)
 }
+
+func (a *AddNode) GraphicLabel() string { return "+" }
+func (a *AddNode) label() string        { return "Add" }
 
 func (a *AddNode) compute() types.Type {
 	lType, ok := a.Lhs().base().typ.(*types.IntType)
@@ -28,5 +33,10 @@ func (a *AddNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (a *AddNode) label() string        { return "Add" }
-func (a *AddNode) GraphicLabel() string { return "+" }
+func (a *AddNode) toString(sb *strings.Builder) {
+	sb.WriteString("(")
+	toString(a.Lhs(), sb)
+	sb.WriteString("+")
+	toString(a.Rhs(), sb)
+	sb.WriteString(")")
+}
