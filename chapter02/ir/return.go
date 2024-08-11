@@ -19,7 +19,7 @@ func (r *ReturnNode) GraphicLabel() string { return "Return" }
 func (r *ReturnNode) label() string        { return "Return" }
 func (r *ReturnNode) compute() types.Type  { return types.BottomType }
 
-func (r *ReturnNode) toString(sb *strings.Builder) {
+func (r *ReturnNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString("return ")
 	toString(r.Expr(), sb)
 	sb.WriteString(";")

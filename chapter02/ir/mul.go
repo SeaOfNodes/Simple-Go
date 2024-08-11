@@ -33,7 +33,7 @@ func (m *MulNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (m *MulNode) toString(sb *strings.Builder) {
+func (m *MulNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString("(")
 	toString(m.Lhs(), sb)
 	sb.WriteString("*")

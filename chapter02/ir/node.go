@@ -22,7 +22,7 @@ type Node interface {
 	compute() types.Type
 	label() string
 	GraphicLabel() string
-	toString(*strings.Builder)
+	toStringInternal(*strings.Builder)
 
 	// Implemented by baseNode to get baseNode
 	base() *baseNode
@@ -169,7 +169,7 @@ func toString(n Node, sb *strings.Builder) {
 		return
 	}
 
-	n.toString(sb)
+	n.toStringInternal(sb)
 }
 
 func (b *baseNode) base() *baseNode {

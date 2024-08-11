@@ -22,4 +22,4 @@ func (s *startNode) GraphicLabel() string { return "Start" }
 
 func (s *startNode) compute() types.Type          { return types.BottomType }
 func (s *startNode) label() string                { return "Start" }
-func (s *startNode) toString(sb *strings.Builder) { sb.WriteString(s.label()) }
+func (s *startNode) toStringInternal(sb *strings.Builder) { sb.WriteString(s.label()) }

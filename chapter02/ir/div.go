@@ -33,7 +33,7 @@ func (d *DivNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (d *DivNode) toString(sb *strings.Builder) {
+func (d *DivNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString("(")
 	toString(d.Lhs(), sb)
 	sb.WriteString("/")

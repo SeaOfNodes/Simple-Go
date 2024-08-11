@@ -30,7 +30,7 @@ func (m *MinusNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (m *MinusNode) toString(sb *strings.Builder) {
+func (m *MinusNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString("(-")
 	toString(m.Value(), sb)
 	sb.WriteString(")")

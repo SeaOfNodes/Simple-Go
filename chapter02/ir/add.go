@@ -33,7 +33,7 @@ func (a *AddNode) compute() types.Type {
 	return types.BottomType
 }
 
-func (a *AddNode) toString(sb *strings.Builder) {
+func (a *AddNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString("(")
 	toString(a.Lhs(), sb)
 	sb.WriteString("+")

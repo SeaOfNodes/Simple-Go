@@ -25,6 +25,6 @@ func (c *ConstantNode) compute() types.Type { return c.typ }
 
 func (c *ConstantNode) value() int { return c.typ.(*types.IntType).Value }
 
-func (c *ConstantNode) toString(sb *strings.Builder) {
+func (c *ConstantNode) toStringInternal(sb *strings.Builder) {
 	c.typ.ToString(sb)
 }
