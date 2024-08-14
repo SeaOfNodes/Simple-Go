@@ -10,5 +10,5 @@ func NewReturnNode(control Node, data Node) *ReturnNode {
 
 func (r *ReturnNode) IsControl() bool { return true }
 
-func (r *ReturnNode) Control() Node { return r.In(0) }
-func (r *ReturnNode) Expr() Node    { return r.In(1) }
+func (r *ReturnNode) Control() Node { return In(r, 0) }
+func (r *ReturnNode) Expr() Node    { return In(r, 1) }

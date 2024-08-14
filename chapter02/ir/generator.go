@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+
+	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
 )
 
 type ASTError struct {
@@ -50,17 +52,48 @@ func (g *Generator) generateReturn(r *ast.ReturnStmt) (*ReturnNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewReturnNode(StartNode, expr), nil
+	n, err := peephole(NewReturnNode(StartNode, expr))
+	if err != nil {
+		return nil, err
+	}
+	return n.(*ReturnNode), nil
 }
 
 func (g *Generator) generateExpr(e ast.Expr) (Node, error) {
 	switch t := e.(type) {
+	case *ast.BinaryExpr:
+		lhs, err := g.generateExpr(t.X)
+		if err != nil {
+			return nil, err
+		}
+		rhs, err := g.generateExpr(t.Y)
+		if err != nil {
+			return nil, err
+		}
+		switch t.Op {
+		case token.ADD:
+			return peephole(NewAddNode(lhs, rhs))
+		case token.SUB:
+			return peephole(NewSubNode(lhs, rhs))
+		case token.MUL:
+			return peephole(NewMulNode(lhs, rhs))
+		case token.QUO:
+			return peephole(NewDivNode(lhs, rhs))
+		}
+	case *ast.UnaryExpr:
+		value, err := g.generateExpr(t.X)
+		if err != nil {
+			return nil, err
+		}
+		if t.Op == token.SUB {
+			return peephole(NewMinusNode(value))
+		}
 	case *ast.BasicLit:
 		num, err := strconv.Atoi(t.Value)
 		if err != nil {
 			return nil, err
 		}
-		return NewConstantNode(num), nil
+		return peephole(NewConstantNode(types.NewIntType(num)))
 	}
 	return nil, astError(e.Pos(), e)
 }
