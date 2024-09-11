@@ -2,7 +2,7 @@ package ir
 
 import (
 	"fmt"
-	"runtime/debug"
+	"go/ast"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,6 +14,11 @@ import (
 var DisablePeephole = false
 
 var nodeID = 0
+
+func computeError(n ast.Node, msg string) *ASTError {
+	internal := errors.New("Compute error: " + msg)
+	return &ASTError{error: internal, Pos: n.Pos()}
+}
 
 // Node is the interface every node type must implement. In order to avoid duplicate code, nodes should embed `baseNode`.
 type Node interface {
@@ -98,7 +103,10 @@ func addOut(n Node, out Node) {
 }
 
 func removeOut(n Node, out Node) {
-	n.base().outs = slices.DeleteFunc(n.base().outs, func(n Node) bool { return n == out })
+	i := slices.Index(n.base().outs, out)
+	last := len(n.base().outs) - 1
+	n.base().outs[i] = n.base().outs[last]
+	n.base().outs = n.base().outs[:last]
 }
 
 func setIn(n Node, i int, in Node) error {
@@ -118,6 +126,9 @@ func setIn(n Node, i int, in Node) error {
 	}
 
 	n.base().ins[i] = in
+	if in != nil {
+		addOut(in, n)
+	}
 	return nil
 }
 
@@ -135,10 +146,6 @@ func kill(n Node) error {
 	if !Unused(n) {
 		return fmt.Errorf("Cannot kill a node that is in use")
 	}
-	fmt.Printf("killing node of type %T\n", n)
-	if n == StartNode {
-		debug.PrintStack()
-		}
 
 	for i := range n.base().ins {
 		err := setIn(n, i, nil)

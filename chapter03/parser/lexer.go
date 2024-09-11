@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/pkg/errors"
 )
 
 var EOFError = fmt.Errorf("EOF")
+var NANError = errors.New("not a number")
 
 type lexer struct {
 	input    []byte
@@ -74,17 +77,13 @@ func (l *lexer) parseID() (string, int) {
 	return l.parseToken(isValidIDByte)
 }
 
-func (l *lexer) parsePunctuation() (string, int) {
-	return l.parseToken(func(b byte) bool { return unicode.IsPunct(rune(b)) })
-}
-
 func (l *lexer) parseNumberString() (string, int, error) {
 	s, pos := l.parseToken(func(b byte) bool { return unicode.IsDigit(rune(b)) })
 	if len(s) > 1 && s[0] == '0' {
 		return "", pos, fmt.Errorf("integer values cannot start with '0'")
 	}
 	if len(s) == 0 {
-		return "", pos, fmt.Errorf("not a number")
+		return "", pos, NANError
 	}
 	return s, pos, nil
 }
@@ -95,24 +94,22 @@ func (l *lexer) ReadNumber() (string, int, error) {
 	return l.parseNumberString()
 }
 
-// ReadToken skips whitespaces and retrieves the next token from input.
-func (l *lexer) ReadToken() (string, int, error) {
+// ReadToken skips whitespaces and retrieves the next token from input. Returns the token, the offset of the start of the token, true if the token is a valid identifier and an error if one occurred.
+func (l *lexer) ReadToken() (string, int, bool, error) {
 	l.skipWhitespace()
 	b, ok := l.peek()
 	switch {
 	case !ok:
-		return "", l.position, nil
+		return "", l.position, false, nil
 	case isValidIDStart(b):
 		id, pos := l.parseID()
-		return id, pos, nil
+		return id, pos, true, nil
 	case unicode.IsNumber(rune(b)):
-		return l.parseNumberString()
-	case unicode.IsPunct(rune(b)):
-		p, pos := l.parsePunctuation()
-		return p, pos, nil
+		num, pos, err := l.parseNumberString()
+		return num, pos, false, err
 	}
 	l.position++
-	return string(b), l.position - 1, nil
+	return string(b), l.position - 1, false, nil
 }
 
 // ReadOp skips whitespaces and retrieves the next op (+-/*) from input.

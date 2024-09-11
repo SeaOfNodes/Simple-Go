@@ -2,11 +2,10 @@ package parser
 
 import (
 	"fmt"
-	"go/ast"
-	"go/token"
-	"strconv"
+	goast "go/ast"
 	"testing"
 
+	"github.com/SeaOfNodes/Simple-Go/chapter03/utils/ast"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -14,63 +13,30 @@ type ParserTestSuite struct {
 	suite.Suite
 }
 
-func astNum(i int) *ast.BasicLit {
-	return &ast.BasicLit{Value: strconv.Itoa(i), Kind: token.INT}
-}
-
-func astExpr(a any) ast.Expr {
-	switch t := a.(type) {
-	case int:
-		return astNum(t)
-	case ast.Expr:
-		return t
-	}
-	return nil
-}
-
-func astBin(lhs any, op string, rhs any) *ast.BinaryExpr {
-	return &ast.BinaryExpr{X: astExpr(lhs), Op: astOp(op), Y: astExpr(rhs)}
-}
-
-func astUn(op string, value any) *ast.UnaryExpr {
-	return &ast.UnaryExpr{X: astExpr(value), Op: astOp(op)}
-}
-
-func astOp(op string) token.Token {
-	switch op {
-	case "+":
-		return token.ADD
-	case "-":
-		return token.SUB
-	case "*":
-		return token.MUL
-	case "/":
-		return token.QUO
-	}
-	return 0
-}
-
-func (suite *ParserTestSuite) equalAST(expected ast.Node, given ast.Node, failMsg string) {
+func (suite *ParserTestSuite) equalAST(expected goast.Node, given goast.Node, failMsg string) {
 	suite.IsType(expected, given, failMsg)
 	switch e := expected.(type) {
-	case *ast.BinaryExpr:
-		g := given.(*ast.BinaryExpr)
+	case *goast.BinaryExpr:
+		g := given.(*goast.BinaryExpr)
 		suite.equalAST(e.X, g.X, failMsg)
 		suite.equalAST(e.Y, g.Y, failMsg)
 		suite.Equal(e.Op, g.Op, failMsg)
 		suite.NotZero(g.OpPos, failMsg)
-	case *ast.UnaryExpr:
-		g := given.(*ast.UnaryExpr)
+	case *goast.UnaryExpr:
+		g := given.(*goast.UnaryExpr)
 		suite.equalAST(e.X, g.X, failMsg)
 		suite.Equal(e.Op, g.Op, failMsg)
 		suite.NotZero(g.OpPos, failMsg)
-	case *ast.BasicLit:
-		g := given.(*ast.BasicLit)
+	case *goast.BasicLit:
+		g := given.(*goast.BasicLit)
 		suite.Equal(e.Value, g.Value, failMsg)
 		suite.Equal(e.Kind, g.Kind, failMsg)
 		suite.NotZero(g.ValuePos, failMsg)
+	case *goast.ParenExpr:
+		g := given.(*goast.ParenExpr)
+		suite.equalAST(e.X, g.X, failMsg)
 	default:
-		suite.FailNow("Unexpected type: %T", e)
+		suite.FailNow("Unexpected type", "Type: %T", e)
 	}
 }
 
@@ -78,92 +44,102 @@ func (suite *ParserTestSuite) TestPrecedence() {
 	subTests := []struct {
 		name     string
 		input    string
-		expected ast.Node
+		expected goast.Node
 	}{
 		{
 			name:     "mul->add",
 			input:    "1*2+3",
-			expected: astBin(astBin(1, "*", 2), "+", 3),
+			expected: ast.Bin(ast.Bin(1, "*", 2), "+", 3),
 		},
 		{
 			name:     "add->mul",
 			input:    "1+2*3",
-			expected: astBin(1, "+", astBin(2, "*", 3)),
+			expected: ast.Bin(1, "+", ast.Bin(2, "*", 3)),
 		},
 		{
 			name:     "div->add",
 			input:    "1/2+3",
-			expected: astBin(astBin(1, "/", 2), "+", 3),
+			expected: ast.Bin(ast.Bin(1, "/", 2), "+", 3),
 		},
 		{
 			name:     "add->div",
 			input:    "1+2/3",
-			expected: astBin(1, "+", astBin(2, "/", 3)),
+			expected: ast.Bin(1, "+", ast.Bin(2, "/", 3)),
 		},
 		{
 			name:     "mul->sub",
 			input:    "1*2-3",
-			expected: astBin(astBin(1, "*", 2), "-", 3),
+			expected: ast.Bin(ast.Bin(1, "*", 2), "-", 3),
 		},
 		{
 			name:     "sub->mul",
 			input:    "1-2*3",
-			expected: astBin(1, "-", astBin(2, "*", 3)),
+			expected: ast.Bin(1, "-", ast.Bin(2, "*", 3)),
 		},
 		{
 			name:     "div->sub",
 			input:    "1/2-3",
-			expected: astBin(astBin(1, "/", 2), "-", 3),
+			expected: ast.Bin(ast.Bin(1, "/", 2), "-", 3),
 		},
 		{
 			name:     "sub->div",
 			input:    "1-2/3",
-			expected: astBin(1, "-", astBin(2, "/", 3)),
+			expected: ast.Bin(1, "-", ast.Bin(2, "/", 3)),
 		},
 		{
 			name:     "minus->add",
 			input:    "-1+2",
-			expected: astBin(astUn("-", 1), "+", 2),
+			expected: ast.Bin(ast.Un("-", 1), "+", 2),
 		},
 		{
 			name:     "add->minus",
 			input:    "1+-2",
-			expected: astBin(1, "+", astUn("-", 2)),
+			expected: ast.Bin(1, "+", ast.Un("-", 2)),
 		},
 		{
 			name:     "minus->mul",
 			input:    "-1*2",
-			expected: astBin(astUn("-", 1), "*", 2),
+			expected: ast.Bin(ast.Un("-", 1), "*", 2),
 		},
 		{
 			name:     "mul->minus",
 			input:    "1*-2",
-			expected: astBin(1, "*", astUn("-", 2)),
+			expected: ast.Bin(1, "*", ast.Un("-", 2)),
 		},
 		{
 			name:     "sub->add",
 			input:    "1-2+3",
-			expected: astBin(astBin(1, "-", 2), "+", 3),
+			expected: ast.Bin(ast.Bin(1, "-", 2), "+", 3),
 		},
 		{
 			name:     "add->sub",
 			input:    "1+2-3",
-			expected: astBin(astBin(1, "+", 2), "-", 3),
+			expected: ast.Bin(ast.Bin(1, "+", 2), "-", 3),
 		},
 		{
 			name:     "div->mul",
 			input:    "1/2*3",
-			expected: astBin(astBin(1, "/", 2), "*", 3),
+			expected: ast.Bin(ast.Bin(1, "/", 2), "*", 3),
 		},
 		{
 			name:     "mul->div",
 			input:    "1*2/3",
-			expected: astBin(astBin(1, "*", 2), "/", 3),
+			expected: ast.Bin(ast.Bin(1, "*", 2), "/", 3),
 		},
 		{
 			name:     "all",
 			input:    "1*2+3/-4-5",
-			expected: astBin(astBin(astBin(1, "*", 2), "+", astBin(3, "/", astUn("-", 4))), "-", 5),
+			expected: ast.Bin(ast.Bin(ast.Bin(1, "*", 2), "+", ast.Bin(3, "/", ast.Un("-", 4))), "-", 5),
+		},
+		{
+			name:     "paren",
+			input:    "1*(2+3)",
+			expected: ast.Bin(1, "*", ast.Paren(ast.Bin(2, "+", 3))),
+		},
+		{
+			name:     "manyParen",
+			input:    "1*(2+(-3)*(1+(1-1)))",
+			expected: ast.Bin(1, "*", ast.Paren(ast.Bin(2, "+", ast.Bin(ast.Paren(ast.Un("-", 3)), "*", ast.Paren(ast.Bin(1, "+", ast.Paren(ast.Bin(1, "-", 1)))))))),
 		},
 	}
 
@@ -191,11 +167,31 @@ func (suite *ParserTestSuite) TestMissingSemicolon() {
 
 	for _, test := range subTests {
 		suite.Run(test.name, func() {
-			p := NewParser("int a = 2")
+			p := NewParser(test.input)
 			_, err := p.Parse()
-			suite.Errorf(err, "expected ;")
+			suite.ErrorContains(err, "expected ;")
 		})
 	}
+}
+
+func (suite *ParserTestSuite) TestBlockNotClosed() {
+	subTests := []struct {
+		name  string
+		input string
+	}{
+		{name: "start", input: "{ return 1;"},
+		{name: "end", input: "return 1; {"},
+		{name: "in block", input: "{ int a = 2; { }"},
+	}
+
+	for _, test := range subTests {
+		suite.Run(test.name, func() {
+			p := NewParser(test.input)
+			_, err := p.Parse()
+			suite.ErrorContains(err, "expected a statement got")
+		})
+	}
+
 }
 
 func TestParser(t *testing.T) {
