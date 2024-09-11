@@ -20,6 +20,6 @@ func newStartNode() *startNode {
 func (s *startNode) IsControl() bool      { return true }
 func (s *startNode) GraphicLabel() string { return "Start" }
 
-func (s *startNode) compute() types.Type          { return types.BottomType }
-func (s *startNode) label() string                { return "Start" }
+func (s *startNode) compute() (types.Type, error)         { return types.BottomType, nil }
+func (s *startNode) label() string                        { return "Start" }
 func (s *startNode) toStringInternal(sb *strings.Builder) { sb.WriteString(s.label()) }
