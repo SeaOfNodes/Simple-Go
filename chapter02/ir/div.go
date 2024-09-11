@@ -28,6 +28,9 @@ func (d *DivNode) compute() types.Type {
 	}
 
 	if lType.Constant() && rType.Constant() {
+		if rType.Value == 0 {
+			return types.NewIntType(0)
+		}
 		return types.NewIntType(lType.Value / rType.Value)
 	}
 	return types.BottomType
