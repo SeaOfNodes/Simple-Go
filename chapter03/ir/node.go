@@ -133,12 +133,12 @@ func removeLastIn(n Node) error {
 
 func kill(n Node) error {
 	if !Unused(n) {
-		return fmt.Errorf("Cannot kill a node that is in use")
+		return errors.New("Cannot kill a node that is in use")
 	}
 	fmt.Printf("killing node of type %T\n", n)
 	if n == StartNode {
 		debug.PrintStack()
-		}
+	}
 
 	for i := range n.base().ins {
 		err := setIn(n, i, nil)
@@ -150,7 +150,7 @@ func kill(n Node) error {
 	n.base().typ = nil
 
 	if !dead(n) {
-		return errors.New(fmt.Sprintf("Node not dead after killing it: %v", n))
+		return errors.Errorf("Node not dead after killing it: %v", n)
 	}
 	return nil
 }
