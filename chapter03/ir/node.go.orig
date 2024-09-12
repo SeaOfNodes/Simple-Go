@@ -1,6 +1,7 @@
 package ir
 
 import (
+	"fmt"
 	"go/ast"
 	"slices"
 	"strconv"
@@ -145,6 +146,13 @@ func kill(n Node) error {
 	if !Unused(n) {
 		return errors.New("Cannot kill a node that is in use")
 	}
+<<<<<<< HEAD
+	fmt.Printf("killing node of type %T\n", n)
+	if n == StartNode {
+		debug.PrintStack()
+	}
+=======
+>>>>>>> chapter03
 
 	for i := range n.base().ins {
 		err := setIn(n, i, nil)

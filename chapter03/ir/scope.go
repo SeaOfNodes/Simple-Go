@@ -67,16 +67,21 @@ func (s *ScopeNode) Lookup(name string) (Node, bool) {
 	return In(s, i), true
 }
 
-func (s *ScopeNode) Update(name string, n Node) error {
+// Update returns true if the name exists in the symbol table
+func (s *ScopeNode) Update(name string, n Node) (bool, error) {
 	i, ok := s.lookup(name)
 	if !ok {
-		return errors.Errorf("Symbol with name %s not found", name)
+		return false, nil
 	}
-	return setIn(s, i, n)
+	err := setIn(s, i, n)
+	if err != nil {
+		return true, err
+	}
+	return true, nil
 }
 
 func (s *ScopeNode) lookup(name string) (int, bool) {
-	for i := len(s.Scopes); i >= 0; i-- {
+	for i := len(s.Scopes) - 1; i >= 0; i-- {
 		if n, ok := s.Scopes[i][name]; ok {
 			return n, true
 		}

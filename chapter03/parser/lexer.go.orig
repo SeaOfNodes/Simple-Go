@@ -7,8 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+<<<<<<< HEAD
 var EOFError = errors.New("EOF")
+=======
+var EOFError = fmt.Errorf("EOF")
 var NANError = errors.New("not a number")
+>>>>>>> chapter03
 
 type lexer struct {
 	input    []byte
@@ -82,7 +86,11 @@ func (l *lexer) parseNumberString() (string, int, error) {
 		return "", pos, errors.New("integer values cannot start with '0'")
 	}
 	if len(s) == 0 {
+<<<<<<< HEAD
+		return "", pos, errors.New("not a number")
+=======
 		return "", pos, NANError
+>>>>>>> chapter03
 	}
 	return s, pos, nil
 }
