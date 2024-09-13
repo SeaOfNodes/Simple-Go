@@ -1,11 +1,12 @@
 package parser
 
 import (
-	"fmt"
 	"unicode"
+
+	"github.com/pkg/errors"
 )
 
-var EOFError = fmt.Errorf("EOF")
+var EOFError = errors.New("EOF")
 
 type lexer struct {
 	input    []byte
@@ -80,10 +81,10 @@ func (l *lexer) parsePunctuation() (string, int) {
 func (l *lexer) parseNumberString() (string, int, error) {
 	s, pos := l.parseToken(func(b byte) bool { return unicode.IsDigit(rune(b)) })
 	if len(s) > 1 && s[0] == '0' {
-		return "", pos, fmt.Errorf("integer values cannot start with '0'")
+		return "", pos, errors.New("integer values cannot start with '0'")
 	}
 	if len(s) == 0 {
-		return "", pos, fmt.Errorf("not a number")
+		return "", pos, errors.New("not a number")
 	}
 	return s, pos, nil
 }

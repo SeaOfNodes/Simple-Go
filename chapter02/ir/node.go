@@ -1,7 +1,6 @@
 package ir
 
 import (
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -115,7 +114,7 @@ func setIn(n Node, i int, in Node) error {
 
 func kill(n Node) error {
 	if !Unused(n) {
-		return fmt.Errorf("Cannot kill a node that is in use")
+		return errors.New("Cannot kill a node that is in use")
 	}
 
 	for i := range n.base().ins {
@@ -128,7 +127,7 @@ func kill(n Node) error {
 	n.base().typ = nil
 
 	if !dead(n) {
-		return errors.New(fmt.Sprintf("Node not dead after killing it: %v", n))
+		return errors.Errorf("Node not dead after killing it: %v", n)
 	}
 	return nil
 }

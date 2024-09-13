@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -17,7 +16,7 @@ type SyntaxError struct {
 }
 
 func syntaxError(offset int, msgFormat string, args ...any) *SyntaxError {
-	internal := errors.New(fmt.Sprintf("Syntax error: "+msgFormat, args...))
+	internal := errors.Errorf("Syntax error: "+msgFormat, args...)
 	return &SyntaxError{error: internal, Offset: offset}
 }
 
