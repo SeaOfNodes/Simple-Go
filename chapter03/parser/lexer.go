@@ -1,24 +1,26 @@
 package parser
 
 import (
+	"strings"
 	"unicode"
 
 	"github.com/pkg/errors"
 )
 
 var EOFError = errors.New("EOF")
+var NANError = errors.New("not a number")
 
 type lexer struct {
 	input    []byte
 	position int
 }
 
-func (l *lexer) isEOF() bool {
+func (l *lexer) IsEOF() bool {
 	return l.position >= len(l.input)
 }
 
 func (l *lexer) peek() (byte, bool) {
-	if l.isEOF() {
+	if l.IsEOF() {
 		return 0, false
 	}
 	return l.input[l.position], true
@@ -74,17 +76,13 @@ func (l *lexer) parseID() (string, int) {
 	return l.parseToken(isValidIDByte)
 }
 
-func (l *lexer) parsePunctuation() (string, int) {
-	return l.parseToken(func(b byte) bool { return unicode.IsPunct(rune(b)) })
-}
-
 func (l *lexer) parseNumberString() (string, int, error) {
 	s, pos := l.parseToken(func(b byte) bool { return unicode.IsDigit(rune(b)) })
 	if len(s) > 1 && s[0] == '0' {
 		return "", pos, errors.New("integer values cannot start with '0'")
 	}
 	if len(s) == 0 {
-		return "", pos, errors.New("not a number")
+		return "", pos, NANError
 	}
 	return s, pos, nil
 }
@@ -95,24 +93,34 @@ func (l *lexer) ReadNumber() (string, int, error) {
 	return l.parseNumberString()
 }
 
-// ReadToken skips whitespaces and retrieves the next token from input.
-func (l *lexer) ReadToken() (string, int, error) {
+// ReadToken skips whitespaces and retrieves the next token from input. Returns the token, the offset of the start of the token, true if the token is a valid identifier and an error if one occurred.
+func (l *lexer) ReadToken() (string, int, bool, error) {
 	l.skipWhitespace()
 	b, ok := l.peek()
 	switch {
 	case !ok:
-		return "", l.position, nil
+		return "", l.position, false, nil
 	case isValidIDStart(b):
 		id, pos := l.parseID()
-		return id, pos, nil
+		return id, pos, true, nil
 	case unicode.IsNumber(rune(b)):
-		return l.parseNumberString()
-	case unicode.IsPunct(rune(b)):
-		p, pos := l.parsePunctuation()
-		return p, pos, nil
+		num, pos, err := l.parseNumberString()
+		return num, pos, false, err
 	}
 	l.position++
-	return string(b), l.position - 1, nil
+	return string(b), l.position - 1, false, nil
+}
+
+// ReadOp skips whitespaces and retrieves the next op (+-/*) from input.
+func (l *lexer) ReadOp() (byte, int, bool) {
+	l.skipWhitespace()
+	b, ok := l.peek()
+	if !ok || !strings.ContainsRune("+-*/=", rune(b)) {
+		return 0, l.position, false
+	}
+
+	l.position++
+	return b, l.position - 1, true
 }
 
 // ReadByte retreives the next non-whitespace byte from input. Returns false if there are no non-whitespace bytes in input.
@@ -120,7 +128,27 @@ func (l *lexer) ReadByte() (byte, int, bool) {
 	l.skipWhitespace()
 	b, ok := l.nextByte()
 	if !ok {
-		return 0, 0, false
+		return 0, l.position, false
 	}
 	return b, l.position - 1, true
+}
+
+func (l *lexer) ReadID() (string, int, bool) {
+	l.skipWhitespace()
+	b, ok := l.peek()
+	if !ok || !isValidIDStart(b) {
+		return "", l.position, false
+	}
+	id, pos := l.parseID()
+	return id, pos, true
+}
+
+func (l *lexer) Read(next byte) (int, bool) {
+	l.skipWhitespace()
+	b, ok := l.peek()
+	if !ok || b != next {
+		return l.position, false
+	}
+	l.position++
+	return l.position - 1, true
 }
