@@ -18,16 +18,16 @@ func (m *MinusNode) IsControl() bool      { return false }
 func (m *MinusNode) GraphicLabel() string { return "-" }
 func (m *MinusNode) label() string        { return "Minus" }
 
-func (m *MinusNode) compute() types.Type {
+func (m *MinusNode) compute() (types.Type, error) {
 	typ, ok := m.Value().base().typ.(*types.IntType)
 	if ok {
 		if typ.Constant() {
-			return types.NewIntType(-typ.Value)
+			return types.NewIntType(-typ.Value), nil
 		}
-		return typ
+		return typ, nil
 	}
 
-	return types.BottomType
+	return types.BottomType, nil
 }
 
 func (m *MinusNode) toStringInternal(sb *strings.Builder) {

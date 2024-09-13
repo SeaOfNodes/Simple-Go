@@ -12,12 +12,12 @@ import (
 
 var DisablePeephole = false
 
-var nodeID = 0
-
 func computeError(n ast.Node, msg string) *ASTError {
 	internal := errors.New("Compute error: " + msg)
 	return &ASTError{error: internal, Pos: n.Pos()}
 }
+
+var nodeID = 0
 
 // Node is the interface every node type must implement. In order to avoid duplicate code, nodes should embed `baseNode`.
 type Node interface {

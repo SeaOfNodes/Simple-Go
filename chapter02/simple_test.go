@@ -50,6 +50,7 @@ func (suite *SimpleTestSuite) TestInvalidPrograms() {
 		{name: "MissingSemicolon", input: "return 123", error: "Syntax error: expected ; after expression"},
 		{name: "MissingWhitespace", input: "return123;", error: "Syntax error: expected a statement got return123"},
 		{name: "ByteAfterSemicolon", input: "return 1;}", error: "Syntax error: unexpected }"},
+		{name: "DivideByZero", input: "return 0/0;", error: "Compute error: divide by zero"},
 	}
 	for _, test := range subTests {
 		suite.Run(test.name, func() {

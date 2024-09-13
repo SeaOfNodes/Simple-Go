@@ -1,6 +1,7 @@
 package ir
 
 import (
+	"go/ast"
 	"slices"
 	"strconv"
 	"strings"
@@ -11,6 +12,11 @@ import (
 
 var DisablePeephole = false
 
+func computeError(n ast.Node, msg string) *ASTError {
+	internal := errors.New("Compute error: " + msg)
+	return &ASTError{error: internal, Pos: n.Pos()}
+}
+
 var nodeID = 0
 
 // Node is the interface every node type must implement. In order to avoid duplicate code, nodes should embed `baseNode`.
@@ -18,7 +24,7 @@ type Node interface {
 	// IsControl indicates whether or not this node is part of the control flow graph
 	IsControl() bool
 
-	compute() types.Type
+	compute() (types.Type, error)
 	label() string
 	GraphicLabel() string
 	toStringInternal(*strings.Builder)
@@ -137,7 +143,10 @@ func dead(n Node) bool {
 }
 
 func peephole(n Node) (Node, error) {
-	typ := n.compute()
+	typ, err := n.compute()
+	if err != nil {
+		return nil, err
+	}
 	n.base().typ = typ
 
 	if DisablePeephole {
