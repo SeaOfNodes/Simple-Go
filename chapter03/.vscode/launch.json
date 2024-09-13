@@ -1,0 +1,22 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+       {
+           "type": "go",
+           "request": "launch",
+           "name": "Run",
+		   "program": "./cmd/compiler/main.go",
+		   "args": [
+			   "${input:argsPrompt}"
+		   ]
+       }
+   ],
+   "inputs": [
+	   {
+		   "id": "argsPrompt",
+		   "type": "promptString",
+		   "description": "Args: ",
+		   "default": ""
+	   }
+   ]
+}

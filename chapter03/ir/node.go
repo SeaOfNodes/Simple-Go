@@ -1,17 +1,23 @@
 package ir
 
 import (
+	"go/ast"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+	"github.com/SeaOfNodes/Simple-Go/chapter03/ir/types"
 	"github.com/pkg/errors"
 )
 
 var DisablePeephole = false
 
 var nodeID = 0
+
+func computeError(n ast.Node, msg string) *ASTError {
+	internal := errors.New("Compute error: " + msg)
+	return &ASTError{error: internal, Pos: n.Pos()}
+}
 
 // Node is the interface every node type must implement. In order to avoid duplicate code, nodes should embed `baseNode`.
 type Node interface {
@@ -84,12 +90,22 @@ func Outs(n Node) []Node {
 	return n.base().outs
 }
 
+func addIn(n Node, in Node) {
+	n.base().ins = append(n.base().ins, in)
+	if in != nil {
+		addOut(in, n)
+	}
+}
+
 func addOut(n Node, out Node) {
 	n.base().outs = append(n.base().outs, out)
 }
 
 func removeOut(n Node, out Node) {
-	n.base().outs = slices.DeleteFunc(n.base().outs, func(n Node) bool { return n == out })
+	i := slices.Index(n.base().outs, out)
+	last := len(n.base().outs) - 1
+	n.base().outs[i] = n.base().outs[last]
+	n.base().outs = n.base().outs[:last]
 }
 
 func setIn(n Node, i int, in Node) error {
@@ -109,6 +125,19 @@ func setIn(n Node, i int, in Node) error {
 	}
 
 	n.base().ins[i] = in
+	if in != nil {
+		addOut(in, n)
+	}
+	return nil
+}
+
+func removeLastIn(n Node) error {
+	lastIn := len(n.base().ins) - 1
+	err := setIn(n, lastIn, nil)
+	if err != nil {
+		return err
+	}
+	n.base().ins = n.base().ins[:lastIn]
 	return nil
 }
 
@@ -162,6 +191,11 @@ func ToString(n Node) string {
 }
 
 func toString(n Node, sb *strings.Builder) {
+	if n == nil {
+		sb.WriteString("nil")
+		return
+	}
+
 	if dead(n) {
 		sb.WriteString(UniqueName(n))
 		sb.WriteString(":DEAD")

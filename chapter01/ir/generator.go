@@ -1,7 +1,6 @@
 package ir
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"strconv"
@@ -15,7 +14,7 @@ type ASTError struct {
 }
 
 func astError(pos token.Pos, n ast.Node) *ASTError {
-	internal := errors.New(fmt.Sprintf("Unsupported AST: %v", n))
+	internal := errors.Errorf("Unsupported AST: %v", n)
 	return &ASTError{error: internal, Pos: pos}
 }
 
