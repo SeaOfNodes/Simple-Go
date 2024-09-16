@@ -168,7 +168,7 @@ func (g *Generator) generateExpr(e ast.Expr) (Node, error) {
 		case token.MUL:
 			return peephole(NewMulNode(lhs, rhs))
 		case token.QUO:
-			return peephole(NewDivNode(lhs, rhs))
+			return peephole(NewDivNode(e, lhs, rhs))
 		}
 	case *ast.ParenExpr:
 		return g.generateExpr(t.X)

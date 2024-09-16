@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"strings"
 
-	"github.com/SeaOfNodes/Simple-Go/chapter02/ir/types"
+	"github.com/SeaOfNodes/Simple-Go/chapter03/ir/types"
 )
 
 type DivNode struct {
