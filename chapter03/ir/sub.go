@@ -17,20 +17,20 @@ func NewSubNode(lhs Node, rhs Node) *SubNode {
 func (s *SubNode) GraphicLabel() string { return "-" }
 func (s *SubNode) label() string        { return "Sub" }
 
-func (s *SubNode) compute() types.Type {
+func (s *SubNode) compute() (types.Type, error) {
 	lType, ok := s.Lhs().base().typ.(*types.IntType)
 	if !ok {
-		return types.BottomType
+		return types.BottomType, nil
 	}
 	rType, ok := s.Rhs().base().typ.(*types.IntType)
 	if !ok {
-		return types.BottomType
+		return types.BottomType, nil
 	}
 
 	if lType.Constant() && rType.Constant() {
-		return types.NewIntType(lType.Value - rType.Value)
+		return types.NewIntType(lType.Value - rType.Value), nil
 	}
-	return types.BottomType
+	return types.BottomType, nil
 }
 
 func (s *SubNode) toStringInternal(sb *strings.Builder) {

@@ -23,8 +23,8 @@ func NewScopeNode() *ScopeNode {
 func (s *ScopeNode) IsControl() bool      { return false }
 func (s *ScopeNode) GraphicLabel() string { return s.label() }
 
-func (s *ScopeNode) compute() types.Type { return types.BottomType }
-func (s *ScopeNode) label() string       { return "Scope" }
+func (s *ScopeNode) compute() (types.Type, error) { return types.BottomType, nil }
+func (s *ScopeNode) label() string                { return "Scope" }
 
 func (s *ScopeNode) toStringInternal(sb *strings.Builder) {
 	sb.WriteString(s.label())

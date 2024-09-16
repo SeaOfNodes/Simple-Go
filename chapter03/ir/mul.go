@@ -17,20 +17,20 @@ func NewMulNode(lhs Node, rhs Node) *MulNode {
 func (m *MulNode) GraphicLabel() string { return "*" }
 func (m *MulNode) label() string        { return "Mul" }
 
-func (m *MulNode) compute() types.Type {
+func (m *MulNode) compute() (types.Type, error) {
 	lType, ok := m.Lhs().base().typ.(*types.IntType)
 	if !ok {
-		return types.BottomType
+		return types.BottomType, nil
 	}
 	rType, ok := m.Rhs().base().typ.(*types.IntType)
 	if !ok {
-		return types.BottomType
+		return types.BottomType, nil
 	}
 
 	if lType.Constant() && rType.Constant() {
-		return types.NewIntType(lType.Value * rType.Value)
+		return types.NewIntType(lType.Value * rType.Value), nil
 	}
-	return types.BottomType
+	return types.BottomType, nil
 }
 
 func (m *MulNode) toStringInternal(sb *strings.Builder) {

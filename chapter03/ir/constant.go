@@ -20,8 +20,8 @@ func NewConstantNode(typ types.Type) *ConstantNode {
 func (c *ConstantNode) IsControl() bool      { return false }
 func (c *ConstantNode) GraphicLabel() string { return c.label() }
 
-func (c *ConstantNode) label() string       { return "#" + strconv.Itoa(c.value()) }
-func (c *ConstantNode) compute() types.Type { return c.typ }
+func (c *ConstantNode) label() string                { return "#" + strconv.Itoa(c.value()) }
+func (c *ConstantNode) compute() (types.Type, error) { return c.typ, nil }
 
 func (c *ConstantNode) value() int { return c.typ.(*types.IntType).Value }
 
