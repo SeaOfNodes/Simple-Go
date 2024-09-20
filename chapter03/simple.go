@@ -1,8 +1,6 @@
 package simple
 
 import (
-	"fmt"
-	"go/ast"
 	goParser "go/parser"
 	"strings"
 
@@ -51,13 +49,6 @@ func GoSimple(source string) (*ir.ReturnNode, *ir.Generator, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	ast.Inspect(n, func(n ast.Node) bool {
-		if val, ok := n.(*ast.ValueSpec); ok {
-			fmt.Printf("type: %v %T\n", val.Type, val.Type)
-		}
-		return true
-	})
 
 	generator := ir.NewGenerator()
 	retNode, err := generator.Generate(n)
