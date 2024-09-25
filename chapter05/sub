@@ -1,0 +1,23 @@
+=== RUN   TestGenerator
+=== RUN   TestGenerator/TestIdealize
+=== RUN   TestGenerator/TestIdealize/minus->sub
+    generator_test.go:63: 
+        	Error Trace:	/home/yarden/projects/Simple-Go/chapter04/ir/generator_test.go:63
+        	            				/home/yarden/go/pkg/mod/github.com/stretchr/testify@v1.9.0/suite/suite.go:115
+        	Error:      	Not equal: 
+        	            	expected: "return arg-1;"
+        	            	actual  : "return (arg-1);"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-return arg-1;
+        	            	+return (arg-1);
+        	Test:       	TestGenerator/TestIdealize/minus->sub
+--- FAIL: TestGenerator (0.00s)
+    --- FAIL: TestGenerator/TestIdealize (0.00s)
+        --- FAIL: TestGenerator/TestIdealize/minus->sub (0.00s)
+FAIL
+FAIL	github.com/SeaOfNodes/Simple-Go/chapter04/ir	0.005s
+FAIL
